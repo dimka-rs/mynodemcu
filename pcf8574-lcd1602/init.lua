@@ -12,9 +12,8 @@ D=1
 W=0
 R=2
 E=4
-BL=8
--- 0 to off
-dev=0x27
+BL=8 -- 0 to off
+dev=0x27 -- this will be shifted and become 4E (W), 4F (R)
 id = 0
 sda = 5
 scl = 6
