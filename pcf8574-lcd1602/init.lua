@@ -1,3 +1,4 @@
+-- PCF8574 + LCD1602
 -- D7 D6 D5 D4 BL  E RW RS
 --  7  6  5  4  3  2  1  0
 -- 4bit: High nibble first
