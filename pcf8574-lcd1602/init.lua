@@ -90,15 +90,11 @@ function lcd_home2(dev)
 end
 
 function get_nibbles(byte)
-  --print(string.format("byte=0x%X,%d",byte,byte))
   if (byte > 255) then
     byte = byte % 255
   end
-  --print(string.format("byte=0x%X,%d",byte,byte))
   high = math.floor(byte/16)*16
-  --print(string.format("high=0x%X,%d",high,high))
   low = math.floor(byte%16)*16
-  --print(string.format("low=0x%X,%d",low,low))
   return high, low
 end
 
@@ -108,7 +104,6 @@ function lcd_write(dev, byte, rs, rw)
   high_e = high + E
   low = low + rs + rw + BL
   low_e = low + E
-  --print('sending '..string.format('0x%X, ',high)..string.format('0x%X',low))
   i2c.start(id)
   i2c.address(id, dev, i2c.TRANSMITTER)
   i2c.write(id, high)
@@ -134,7 +129,7 @@ function lcd_string(dev, str)
 end
 
 str1='Hello, world!'
-str2='#Nodemcu #ESP8266'
+str2='#Nodemcu#ESP8266'
 function lcd_test()
   lcd_clear(0x27)
   lcd_home(0x27)
@@ -144,7 +139,17 @@ function lcd_test()
 end
 
 function lcd_test2()
-  for i = 0, 15 do
-    lcd_write(0x27, i+0x30, D, W)
+  lcd_clear(dev)
+  lcd_home(dev)
+  for i = 0, 14 do
+    lcd_home(dev)
+    for j = 0, 15 do
+      lcd_write(dev, i*16+j, D, W)
+    end
+    lcd_home2(dev)
+    for j = 0, 15 do
+      lcd_write(dev, (i+1)*16+j, D, W)
+    end
+    tmr.delay(5000000)
   end
 end

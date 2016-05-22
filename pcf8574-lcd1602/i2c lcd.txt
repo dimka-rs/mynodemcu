@@ -1,0 +1,48 @@
+mdl sgnl ic
+ 1  gnd   8
+ 2  vcc  16
+ 3  v0    -
+ 4  rs    4 p0
+ 5  rw    5 p1
+ 6  e     6 p2
+ 7
+ 8
+ 9
+10
+11 db4    9 p4
+12 db5   10 p6
+13 db6   11 p6
+14 db7   12 p7
+15 vcc   16
+16 key   ?? p3
+
+4F > 27 !!!
+4bit: 4H, 4L
+E:  H - valid
+RS: H - data, L - instruction
+RW: H - read, L - write
+
+Init:
+wait 15 ms
+00 0011
+4.1 ms
+00 0011
+100 us
+00 0011
+bf
+00 0010
+bf
+00 0010
+00 NFXX N - lines, F - font
+bf
+00 0000
+00 1000 - on/off, cursor, blink
+bf
+00 0000
+00 0001 - clear
+bf
+00 0000
+00 01(I/D)S
+
+line1: 80...8F/00...0F
+line2: C0...CF/40...4F
