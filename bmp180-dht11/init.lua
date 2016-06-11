@@ -9,13 +9,13 @@ bmp180.init(SDA_PIN, SCL_PIN)
 DAT = 2
 -- MQTT
 MQTTID='env'
-MQTTIP='MQTTIP'
+MQTTIP='192.168.31.4'
 -- ThingSpeak
-TSKEY='Thingspeak KEY'
+TSKEY='RGTJA4C0PMEYVFAE'
 TSIP='184.106.153.149' -- api.thingspeak.com
 -- WiFi
-WFSSID="SSID"
-WFKEY="KEY"
+WFSSID="Slow"
+WFKEY="Ao3deiwah7"
 
 
 function readDHT11()

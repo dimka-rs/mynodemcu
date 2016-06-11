@@ -45,7 +45,14 @@ function adc_readall(dev)
     val=i2c.read(id,1)
     adc_data[i]=val
     print(i..":"..string.byte(val))
-    lcd_string(lcd_addr, tostring(string.byte(val))..' ')
+    val=tostring(string.byte(val))
+    if string.len(val) == 1 then
+        val='00'..val
+    end
+    if string.len(val) == 2 then
+        val='0'..val
+    end
+    lcd_string(lcd_addr, val..' ')
     tmr.delay(10)
     i2c.stop(id)
   end
@@ -160,7 +167,7 @@ function lcd_string(dev, str)
 end
 
 -- main
-for i=1,60 do
+for i=1,600 do
   adc_readall(adc_addr)
   tmr.delay(1000000)
 end

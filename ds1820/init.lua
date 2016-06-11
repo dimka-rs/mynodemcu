@@ -1,11 +1,11 @@
 -- some constants --
-MQTTIP='MQTT broker IP'
+MQTTIP='192.168.31.4'
 MQTTTOPIC='/sensors/hwat-t'
 MQTTID='hwat'
 TSIP='184.106.153.149' -- api.thingspeak.com
-TSKEY='Thingspeak KEY'
-SSID="WiFi SSID"
-KEY="WiFi KEY"
+TSKEY='03UIDXIKINPM4K4H'
+SSID="Slow"
+KEY="Ao3deiwah7"
 -- onewire pin3=GPIO0
 OWPIN = 3
 -- DS18B20 Power Supply pin
@@ -15,8 +15,8 @@ function getData()
 count = 0
 repeat
   count = count + 1
-  addr = ow.reset_search(pin)
-  addr = ow.search(pin)
+  addr = ow.reset_search(OWPIN)
+  addr = ow.search(OWPIN)
   tmr.wdclr()
 until((addr ~= nil) or (count > 100))
 if (addr == nil) then
@@ -28,18 +28,18 @@ else
     if ((addr:byte(1) == 0x10) or (addr:byte(1) == 0x28)) then
       print("Device is a DS18S20 family device.")
         repeat
-          ow.reset(pin)
-          ow.select(pin, addr)
-          ow.write(pin, 0x44, 1)
+          ow.reset(OWPIN)
+          ow.select(OWPIN, addr)
+          ow.write(OWPIN, 0x44, 1)
           tmr.delay(1000000)
-          present = ow.reset(pin)
-          ow.select(pin, addr)
-          ow.write(pin,0xBE,1)
+          present = ow.reset(OWPIN)
+          ow.select(OWPIN, addr)
+          ow.write(OWPIN,0xBE,1)
           print("P="..present)  
           data = nil
-          data = string.char(ow.read(pin))
+          data = string.char(ow.read(OWPIN))
           for i = 1, 8 do
-            data = data .. string.char(ow.read(pin))
+            data = data .. string.char(ow.read(OWPIN))
           end
           print(data:byte(1,9))
           crc = ow.crc8(string.sub(data,1,8))
