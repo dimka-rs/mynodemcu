@@ -1,3 +1,5 @@
+-- https://raw.githubusercontent.com/nodemcu/nodemcu-firmware/master/lua_examples/u8glib/u8g_graphics_test.lua
+
 -- ***************************************************************************
 -- Graphics Test
 --
@@ -9,36 +11,15 @@
 --
 -- ***************************************************************************
 
--- https://raw.githubusercontent.com/nodemcu/nodemcu-firmware/master/lua_examples/u8glib/u8g_graphics_test.lua
-
 -- setup I2c and connect display
 function init_i2c_display()
     -- SDA and SCL can be assigned freely to available GPIOs
-    local sda = 2 -- GPIO14
-    local scl = 1 -- GPIO12
+    local sda = 2
+    local scl = 1
     local sla = 0x3c
     i2c.setup(0, sda, scl, i2c.SLOW)
     disp = u8g.ssd1306_128x64_i2c(sla)
 end
-
--- setup SPI and connect display
-function init_spi_display()
-    -- Hardware SPI CLK  = GPIO14
-    -- Hardware SPI MOSI = GPIO13
-    -- Hardware SPI MISO = GPIO12 (not used)
-    -- Hardware SPI /CS  = GPIO15 (not used)
-    -- CS, D/C, and RES can be assigned freely to available GPIOs
-    local cs  = 8 -- GPIO15, pull-down 10k to GND
-    local dc  = 4 -- GPIO2
-    local res = 0 -- GPIO16
-
-    spi.setup(1, spi.MASTER, spi.CPOL_LOW, spi.CPHA_LOW, 8, 8)
-    -- we won't be using the HSPI /CS line, so disable it again
-    gpio.mode(8, gpio.INPUT, gpio.PULLUP)
-
-    disp = u8g.ssd1306_128x64_hw_spi(cs, dc, res)
-end
-
 
 -- graphic test components
 function prepare()
@@ -73,10 +54,10 @@ function r_frame(a)
 end
 
 function stringtest(a)
-    disp:drawStr(30+a, 31, " 0")
-    disp:drawStr90(30, 31+a, " 90")
-    disp:drawStr180(30-a, 31, " 180")
-    disp:drawStr270(30, 31-a, " 270")
+    disp:drawStr(64+a, 31, " 0")
+    disp:drawStr90(64, 31+a, " 90")
+    disp:drawStr180(64-a, 31, " 180")
+    disp:drawStr270(64, 31-a, " 270")
 end
 
 function line(a)
@@ -117,7 +98,7 @@ end
 
 -- the draw() routine
 function draw(draw_state)
-     local component = bit.rshift(draw_state, 3)
+    local component = bit.rshift(draw_state, 3)
 
     prepare()
 
@@ -126,7 +107,7 @@ function draw(draw_state)
     elseif (component == 1) then
         disc_circle(bit.band(draw_state, 7))
     elseif (component == 2) then
-       r_frame(bit.band(draw_state, 7))
+        r_frame(bit.band(draw_state, 7))
     elseif (component == 3) then
         stringtest(bit.band(draw_state, 7))
     elseif (component == 4) then
@@ -145,14 +126,14 @@ function draw_loop()
     local function draw_pages()
         draw(draw_state)
         if disp:nextPage() then
-            draw_pages()
+            node.task.post(draw_pages)
         else
-            graphics_test()
+            node.task.post(graphics_test)
         end
     end
     -- Restart the draw loop and start drawing pages
     disp:firstPage()
-    draw_pages()
+    node.task.post(draw_pages)
 end
 
 function graphics_test()
@@ -166,14 +147,13 @@ function graphics_test()
 
     print("Heap: " .. node.heap())
     -- retrigger draw_loop
-    draw_loop()
+    node.task.post(draw_loop)
 
 end
 
 draw_state = 0
 
 init_i2c_display()
---init_spi_display()
 
 print("--- Starting Graphics Test ---")
-draw_loop()
+node.task.post(draw_loop)
