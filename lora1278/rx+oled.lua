@@ -117,19 +117,29 @@ end
 
 function lora_get_rssi()
   v = readreg(RegRssiValue)
-  return string.byte(v) - 157
+  return string.byte(v) - 164 -- LF:-164, HF:-157
+end
+
+function lora_get_pkt_rssi()
+  v = readreg(RegPktRssiValue)
+  return string.byte(v) - 164 -- LF:-164, HF:-157
 end
 
 function lora_get_flags()
+  flags=readreg(RegIrqFlags)
+  return flags
+end
+
+function print_flags()
  flags=readreg(RegIrqFlags)
- if bit.isset(flags, 7) then b7='RT' else b7='rt' end
- if bit.isset(flags, 6) then b6='RD' else b6='rd' end
- if bit.isset(flags, 5) then b5='CE' else b5='ce' end
- if bit.isset(flags, 4) then b4='VH' else b4='vh' end
- if bit.isset(flags, 3) then b3='TD' else b3='td' end
- if bit.isset(flags, 2) then b2='CD' else b2='cd' end
- if bit.isset(flags, 1) then b1='CC' else b1='cc' end
- if bit.isset(flags, 0) then b0='CT' else b0='ct' end
+ if bit.isset(flags, 7) then b7='RT' else b7='rt' end --RxTimeout
+ if bit.isset(flags, 6) then b6='RD' else b6='rd' end --RxDone
+ if bit.isset(flags, 5) then b5='CE' else b5='ce' end --CrcError
+ if bit.isset(flags, 4) then b4='VH' else b4='vh' end --ValidHeader
+ if bit.isset(flags, 3) then b3='TD' else b3='td' end --TxDone
+ if bit.isset(flags, 2) then b2='CD' else b2='cd' end --CadDone
+ if bit.isset(flags, 1) then b1='CC' else b1='cc' end --FhssChangeChannel
+ if bit.isset(flags, 0) then b0='CT' else b0='ct' end --CadDetected
  flags=b7..b6..b5..b4..b3..b2..b1..b0
  return flags
 end
@@ -140,15 +150,54 @@ prepare_display()
 init_spi()
 lora_set_mode('SLEEP')
 lora_reset_ptr_rx()
+lora_set_mode('RXC')
+
+pktnum=0
+pktsnr=0
+pktrssi=0
+pktlen=0
+pktdata=''
+pktdata2=''
+pktdata3=''
+crcerr=true
+
 for i=1, 60 do
   tmr.delay(700000)
   rssi=tostring(lora_get_rssi())
+  print('Rssi:'..rssi)
   flags=lora_get_flags()
-  print('RSSI: '..rssi..', ST: '..flags)
+  if bit.isset(flags, 6) then
+    print('Rx Done!')
+    crcerr = bit.isset(flags, 5)
+    pktnum=pktnum+1
+    pktsnr=readreg(RegPktSnrValue)
+    pktrssi=lora_get_pkt_rssi()
+    pktlen=readreg(RegRxNbBytes)
+    rxcurr=readreg(RegFifoRxCurrAddr)
+    writereg(RegFifoAddrPtr, rxcurr)
+    pktdata3=pktdata2
+    pktdata2=pktdata
+    pktdata=''
+    for i=1, pktlen do
+      byte=readreg(RegFifo)
+      byte=string.format('0x%X',byte)
+      print('Byte['..i..']:'..byte)
+      pktdata=pktdata..byte..' '
+    end
+    writereg(RegIrqFlags, 0xFF)
+  end
+  -- get draw data
+  mode=readreg(RegOpMode)
+  if crcerr then crcstr='ER' else crcstr='OK' end
+  if i%2 == 0 then s='.' else s=':' end
+  -- draw screen
   disp:firstPage()
   repeat
-    disp:drawStr(0, 0, 'RSSI: '..rssi)
-    disp:drawStr(0, 10, 'ST: '..flags)
-    disp:drawStr(0, 20, 'I: '..i)
+    disp:drawStr(0, 0, 'RSSI'..s..' '..rssi..' MODE: '..string.format('0x%X',mode))
+    disp:drawStr(0, 10, 'NUM RSSI SNR LEN CRC')
+    disp:drawStr(0, 20, string.format('%3d %4d %3d %3d %s', pktnum, pktrssi, pktsnr, pktlen, crcstr))
+    disp:drawStr(0, 30, pktdata)
+    disp:drawStr(0, 40, pktdata2)
+    disp:drawStr(0, 50, pktdata3)
   until disp:nextPage() == false
 end
