@@ -110,9 +110,9 @@ function lora_set_mode(mode)
 end
 
 function lora_reset_ptr_rx()
-  lora_set_mode('STDBY')
   base_addr=readreg(RegFifoRxBaseAddr)
   writereg(RegFifoAddrPtr, base_addr)
+  print('Ptr set to '..string.format('0x%X', base_addr))
 end
 
 function lora_get_rssi()
@@ -144,11 +144,12 @@ function print_flags()
  return flags
 end
 
--- start
+-- init
 init_i2c_display()
 prepare_display()
 init_spi()
 lora_set_mode('SLEEP')
+lora_set_mode('STDBY')
 lora_reset_ptr_rx()
 lora_set_mode('RXC')
 
@@ -159,45 +160,51 @@ pktlen=0
 pktdata=''
 pktdata2=''
 pktdata3=''
+pktdata4=''
 crcerr=true
 
-for i=1, 60 do
-  tmr.delay(700000)
-  rssi=tostring(lora_get_rssi())
-  print('Rssi:'..rssi)
+-- START
+tmr.alarm(0, 1000, tmr.ALARM_AUTO, function()    
   flags=lora_get_flags()
   if bit.isset(flags, 6) then
     print('Rx Done!')
     crcerr = bit.isset(flags, 5)
     pktnum=pktnum+1
+    if pktnum > 999 then pktnum = 0 end
     pktsnr=readreg(RegPktSnrValue)
     pktrssi=lora_get_pkt_rssi()
     pktlen=readreg(RegRxNbBytes)
     rxcurr=readreg(RegFifoRxCurrAddr)
     writereg(RegFifoAddrPtr, rxcurr)
+    print('Set fifo ptr to '..string.format('0x%X',rxcurr))
+    print('Compare to '..string.format('0x%X', (readreg(RegFifoRxByteAddr)-pktlen)))
+    pktdata4=pktdata3
     pktdata3=pktdata2
     pktdata2=pktdata
-    pktdata=''
+    pktdata=string.format('%3d ', pktnum)
     for i=1, pktlen do
       byte=readreg(RegFifo)
-      byte=string.format('0x%X',byte)
+      byte=string.format('%2X',byte)
       print('Byte['..i..']:'..byte)
-      pktdata=pktdata..byte..' '
+      pktdata=pktdata..byte
+      if i%4 == 0 then pktdata=pktdata..'.' end
     end
     writereg(RegIrqFlags, 0xFF)
   end
   -- get draw data
+  rssi=tostring(lora_get_rssi())
+  print('Rssi:'..rssi)
   mode=readreg(RegOpMode)
-  if crcerr then crcstr='ER' else crcstr='OK' end
-  if i%2 == 0 then s='.' else s=':' end
+  if crcerr then crcstr=' ER' else crcstr=' OK' end
+  if s == 'rssi' then s='RSSI' else s='rssi' end
   -- draw screen
   disp:firstPage()
   repeat
-    disp:drawStr(0, 0, 'RSSI'..s..' '..rssi..' MODE: '..string.format('0x%X',mode))
-    disp:drawStr(0, 10, 'NUM RSSI SNR LEN CRC')
-    disp:drawStr(0, 20, string.format('%3d %4d %3d %3d %s', pktnum, pktrssi, pktsnr, pktlen, crcstr))
-    disp:drawStr(0, 30, pktdata)
-    disp:drawStr(0, 40, pktdata2)
-    disp:drawStr(0, 50, pktdata3)
+    disp:drawStr(0,  0, s..'  PKT SNR LEN CRC')
+    disp:drawStr(0, 10, string.format('%4d %4d %3d %3d %s', rssi, pktrssi, pktsnr, pktlen, crcstr))
+    disp:drawStr(0, 20, pktdata)
+    disp:drawStr(0, 30, pktdata2)
+    disp:drawStr(0, 40, pktdata3)
+    disp:drawStr(0, 50, pktdata4)
   until disp:nextPage() == false
-end
+end)
