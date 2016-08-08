@@ -94,7 +94,6 @@ function writereg(reg, data)
   gpio.write(cs, gpio.LOW)
   reg=reg+0x80
   wrote = spi.send(id, reg, data)
-  rdata = spi.recv(id, 1)
   gpio.write(cs, gpio.HIGH)
 end
 
@@ -123,6 +122,13 @@ end
 function lora_get_pkt_rssi()
   v = readreg(RegPktRssiValue)
   return string.byte(v) - 164 -- LF:-164, HF:-157
+end
+
+function lora_get_pkt_snr()
+  v=readreg(RegPktSnrValue)
+--  return (256-v)/4 -- https://github.com/mayeranalytics/pySX127x/blob/master/SX127x/LoRa.py :478
+  if v > 127 then v=v-256 end
+  return v/4
 end
 
 function lora_get_flags()
@@ -171,7 +177,7 @@ tmr.alarm(0, 1000, tmr.ALARM_AUTO, function()
     crcerr = bit.isset(flags, 5)
     pktnum=pktnum+1
     if pktnum > 999 then pktnum = 0 end
-    pktsnr=readreg(RegPktSnrValue)
+    pktsnr=lora_get_pkt_snr()
     pktrssi=lora_get_pkt_rssi()
     pktlen=readreg(RegRxNbBytes)
     rxcurr=readreg(RegFifoRxCurrAddr)
@@ -184,10 +190,10 @@ tmr.alarm(0, 1000, tmr.ALARM_AUTO, function()
     pktdata=string.format('%3d ', pktnum)
     for i=1, pktlen do
       byte=readreg(RegFifo)
-      byte=string.format('%2X',byte)
+      byte=string.format('%02X',byte)
       print('Byte['..i..']:'..byte)
       pktdata=pktdata..byte
-      if i%4 == 0 then pktdata=pktdata..'.' end
+      if i%4 == 0 then pktdata=pktdata..' ' end
     end
     writereg(RegIrqFlags, 0xFF)
   end
