@@ -24,11 +24,6 @@ function box_frame(a)
     disp:drawFrame(10+a, 15+30, 30, 7)
 end
 
-
-init_i2c_display()
-prepare()
-disp:begin()
-
 function listap(t)
   a = {}
   i=1
@@ -55,11 +50,29 @@ function listap(t)
   until offset==offsetmax
   print('done')
 end
-wifi.sta.getap(listap)
+
+function test_pages()
+  disp:firstPage()
+  page=0
+  repeat
+    x=page*16
+    y=0
+    w=16
+    h=64
+    print('x='..tostring(x)..', y='..tostring(y)..', w='..tostring(w)..', h='..tostring(h))
+    disp:drawBox(x, y, w, h)
+    page=page+1
+  until disp:nextPage() == false
+  print('Pages: '..tostring(page))
+end
+
+init_i2c_display()
+prepare()
+disp:begin()
+
+--wifi.sta.getap(listap)
+test_pages()
 
 
-
---disp:firstPage()
---disp:nextPage()
 --print(string.format("0x%02X", i))
 

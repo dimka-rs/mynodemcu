@@ -30,7 +30,6 @@ function writereg(reg, data)
   gpio.write(cs, gpio.LOW)
   reg=reg+0x80
   wrote = spi.send(id, reg, data)
-  rdata = spi.recv(id, 1)
   gpio.write(cs, gpio.HIGH)
 end
 
