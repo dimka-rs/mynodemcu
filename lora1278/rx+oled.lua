@@ -58,8 +58,8 @@ end
 
 function init_i2c_display()
     -- SDA and SCL can be assigned freely to available GPIOs
-    local sda = 2 -- GPIO14
-    local scl = 1 -- GPIO12
+    local sda = 2
+    local scl = 1
     local sla = 0x3c
     i2c.setup(0, sda, scl, i2c.SLOW)
     disp = u8g.ssd1306_128x64_i2c(sla)
@@ -111,7 +111,12 @@ end
 function lora_reset_ptr_rx()
   base_addr=readreg(RegFifoRxBaseAddr)
   writereg(RegFifoAddrPtr, base_addr)
-  print('Ptr set to '..string.format('0x%X', base_addr))
+  print('Ptr set to '..string.format('0x0%X', base_addr))
+end
+
+function lora_get_rxcdr()
+   cdr=readreg(RegModemStat)/32+4 -- 4/cdr., 5-8
+   return cdr
 end
 
 function lora_get_rssi()
@@ -177,6 +182,7 @@ tmr.alarm(0, 1000, tmr.ALARM_AUTO, function()
     crcerr = bit.isset(flags, 5)
     pktnum=pktnum+1
     if pktnum > 999 then pktnum = 0 end
+    print('RxCdr:'..tostring(lora_get_rxcdr()))
     pktsnr=lora_get_pkt_snr()
     pktrssi=lora_get_pkt_rssi()
     pktlen=readreg(RegRxNbBytes)
@@ -189,12 +195,11 @@ tmr.alarm(0, 1000, tmr.ALARM_AUTO, function()
     pktdata2=pktdata
     pktdata=string.format('%3d ', pktnum)
     for i=1, pktlen do
-      byte=readreg(RegFifo)
-      byte=string.format('%02X',byte)
-      print('Byte['..i..']:'..byte)
+      byte=string.char(readreg(RegFifo))
       pktdata=pktdata..byte
-      if i%4 == 0 then pktdata=pktdata..' ' end
+      --if i%4 == 0 then pktdata=pktdata..' ' end --separate groups of 4 with spaces
     end
+    print('Data:'..pktdata)
     writereg(RegIrqFlags, 0xFF)
   end
   -- get draw data
@@ -214,3 +219,10 @@ tmr.alarm(0, 1000, tmr.ALARM_AUTO, function()
     disp:drawStr(0, 50, pktdata4)
   until disp:nextPage() == false
 end)
+
+-- generate init file
+--file.remove("init.lua");
+--file.open("init.lua","w+");
+--w = file.writeline
+--w('dofile("rx+oled.lua")');
+--file.close();
