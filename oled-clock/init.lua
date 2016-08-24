@@ -4,6 +4,14 @@ scl  = 2
 rtc  = 0x51
 oled = 0x3c
 eeprom = 0x53 -- or 0x57 if B0 is high
+tzoffsethrs = 3
+tzoffsetmin = 0
+ntpserv = 'pool.ntp.org'
+wifi_ssid = "RL01w-TEST"
+wifi_key = "1234567890"
+insync = 0
+ip = nil
+rssi = ''
 
 function i2c_print_slaves()
   for i=0x00,0x7F do
@@ -79,7 +87,14 @@ end
 function draw_time()
   disp:firstPage()
   repeat
-    disp:drawStr(15,  20, t)
+    --font_6x10r,font_fub49n,font_freedoomr25n
+    disp:setFont(u8g.font_freedoomr25n)
+    disp:drawStr(15,  30, t)
+    if ip ~= nil then
+      disp:setFont(u8g.font_6x10r)
+      disp:drawStr(0,  50, ip)
+      disp:drawStr(0,  60, wifi_ssid..' '..rssi..'dBm')
+    end
   until disp:nextPage() == false
 end
 
@@ -96,22 +111,52 @@ d=':' -- delimeter
 c=0   -- seconds
 t=''  -- time string
 
---[[
+function sync_ok(offsec, offusec,serv)
+  print('Sync OK: '..tostring(offsec)..','..tostring(offusec)..','..tostring(serv))
+  hrs=offsec%86400/3600
+  hrs=hrs+tzoffsethrs
+  if hrs>23 then hrs=hrs-24 end
+
+  min=offsec%3600/60
+  min=min+tzoffsetmin
+  if min > 59 then min=min-60 end
+
+  sec=offsec%60
+
+  h=hrs
+  m=min
+  s=sec
+  print('Time set to: '..tostring(hrs)..':'..tostring(min)..':'..tostring(sec))
+  insync=0
+  tmr.stop(0)
+end
+
+function sync_err(errcode)
+  print('Sync ERR: '..tostring(errcode))
+  if errcode == 1 then print('1: DNS lookup failed') end
+  if errcode == 2 then print('2: Memory allocation failure') end
+  if errcode == 3 then print('3: UDP send failed') end
+  if errcode == 4 then print('4: Timeout, no NTP response received') end
+  insync=0
+end
+
 -- Config WiFi and sync time
 wifi.setmode(wifi.STATION)
-wifi.sta.config("myssid", "password")
-tmr.alarm(0, 1000, tmr.ALARM_AUTO, function()   
+wifi.sta.config(wifi_ssid, wifi_key)
+tmr.alarm(0, 1000, tmr.ALARM_AUTO, function()
   ip = wifi.sta.getip()
   if ip ~= nil then
     print('Got ip: '..ip)
-    sntp.sync()
+    if insync == 0 then
+      sntp.sync('pool.ntp.org',sync_ok, sync_err)
+      insync=1
+    end
   end
 end)
---]]
 
 
 -- MAIN LOOP
-tmr.alarm(1, 1000, tmr.ALARM_AUTO, function()   
+tmr.alarm(1, 1000, tmr.ALARM_AUTO, function()
   c=c+1
   if c > 59 then
     c=0
@@ -130,12 +175,14 @@ tmr.alarm(1, 1000, tmr.ALARM_AUTO, function()
     d=' '
   end
   t=string.format('%02d',h)..d..string.format('%02d',m)
-  print('Time: '..t)
+--  print('Time: '..t)
   s=s+1
   if s > 15 then s=0 end
   if s > 10 then
     draw_logo()
   else
+    rssi = wifi.sta.getrssi()
     draw_time()
   end
 end)
+
