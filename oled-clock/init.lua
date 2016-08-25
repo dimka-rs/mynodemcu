@@ -1,6 +1,6 @@
 id   = 0
-sda  = 1
-scl  = 2
+sda  = 4 -- GPIO2=D4
+scl  = 3 -- GPIO0=D3
 rtc  = 0x51
 oled = 0x3c
 eeprom = 0x53 -- or 0x57 if B0 is high
@@ -34,7 +34,6 @@ function init_rtc()
 end
 
 function init_i2c()
-    -- SDA and SCL can be assigned freely to available GPIOs
     gpio.mode(sda, gpio.OUTPUT)
     gpio.mode(scl, gpio.OUTPUT)
     i2c.setup(id, sda, scl, i2c.SLOW)
@@ -48,8 +47,7 @@ function init_display()
     disp = u8g.ssd1306_128x64_i2c(oled)
     disp:begin()
     disp:firstPage()
-    --font_6x10r,font_fub49n,font_freedoomr25n
-    disp:setFont(u8g.font_freedoomr25n)
+    disp:setFont(u8g.font_6x10)
     disp:setFontRefHeightExtendedText()
     disp:setDefaultForegroundColor()
     disp:setFontPosTop()
@@ -87,11 +85,11 @@ end
 function draw_time()
   disp:firstPage()
   repeat
-    --font_6x10r,font_fub49n,font_freedoomr25n
+    --font_6x10,font_chikita,font_freedoomr25n
     disp:setFont(u8g.font_freedoomr25n)
     disp:drawStr(15,  30, t)
     if ip ~= nil then
-      disp:setFont(u8g.font_6x10r)
+      disp:setFont(u8g.font_6x10)
       disp:drawStr(0,  50, ip)
       disp:drawStr(0,  60, wifi_ssid..' '..rssi..'dBm')
     end
