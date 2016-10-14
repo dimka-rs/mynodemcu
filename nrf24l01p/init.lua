@@ -18,7 +18,6 @@ spi.setup(1, spi.MASTER, spi.CPOL_LOW, spi.CPHA_LOW, spi.DATABITS_8, 8);
 
 function readreg(reg)
   gpio.write(csn, gpio.LOW)
-  tmr.delay(10)
   spi.send(1, reg)
   val = spi.recv(1, 1)
   gpio.write(csn, gpio.HIGH)
@@ -27,7 +26,6 @@ end
 
 function writereg(reg, data)
   gpio.write(csn, gpio.LOW)
-  tmr.delay(10)
   spi.send(1, reg+0x20, data)
   gpio.write(csn, gpio.HIGH)
 end
@@ -39,7 +37,6 @@ end
 function writepld(pld) -- not impl
   -- 1010 0000, 1 to 32 LSByte first
   gpio.write(csn, gpio.LOW)
-  tmr.delay(10)
   wrote=spi.send(1, 0xA0, pld)
   gpio.write(csn, gpio.HIGH)
   return wrote
@@ -48,7 +45,6 @@ end
 function flushtx()
   --1110 0001
   gpio.write(csn, gpio.LOW)
-  tmr.delay(10)
   spi.send(1, 0xE1)
   gpio.write(csn, gpio.HIGH)
 end
@@ -56,7 +52,6 @@ end
 function flushrx()
   --1110 0010
   gpio.write(csn, gpio.LOW)
-  tmr.delay(10)
   spi.send(1, 0xE2)
   gpio.write(csn, gpio.HIGH)
 end
@@ -64,14 +59,12 @@ end
 function reusetxpl()
   --1110 0011
   gpio.write(csn, gpio.LOW)
-  tmr.delay(10)
   spi.send(1, 0xE3)
   gpio.write(csn, gpio.HIGH)
 end
 
 function rrxplwid()
- gpio.write(csn, gpio.LOW)
-  tmr.delay(10)
+  gpio.write(csn, gpio.LOW)
   spi.send(1, 0x60)
   val = spi.recv(1, 1)
   gpio.write(csn, gpio.HIGH)
@@ -114,8 +107,8 @@ function send_data(data)
   writepld(data)
   clear_bit(STATUS, 4) -- clear MAX_RT
   gpio.write(ce, gpio.HIGH)
-  tmr.delay(10)
-  gpio.write(csn, gpio.LOW)
+  tmr.delay(1)
+  gpio.write(ce, gpio.LOW)
 end
 
 function recv_data()
