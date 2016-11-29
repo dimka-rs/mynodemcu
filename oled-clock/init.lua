@@ -1,6 +1,11 @@
+-- Manufacturer: e0
+-- Device: 4014
+-- MAC: 18:fe:34:f2:71:54
+
 id   = 0
 sda  = 4 -- GPIO2=D4
 scl  = 3 -- GPIO0=D3
+env  = 2 -- GPIO4=D2
 rtc  = 0x51
 oled = 0x3c
 eeprom = 0x53 -- or 0x57 if B0 is high
@@ -12,6 +17,7 @@ wifi_key = "1234567890"
 insync = 0
 ip = nil
 rssi = ''
+envstr=''
 
 function i2c_print_slaves()
   for i=0x00,0x7F do
@@ -90,10 +96,22 @@ function draw_time()
     disp:drawStr(15,  30, t)
     if ip ~= nil then
       disp:setFont(u8g.font_6x10)
+      disp:drawStr(0,  40, envstr)
       disp:drawStr(0,  50, ip)
       disp:drawStr(0,  60, wifi_ssid..' '..rssi..'dBm')
     end
   until disp:nextPage() == false
+end
+
+function get_env()
+  status, temp, humi, temp_dec, humi_dec = dht.read(env)
+  if status == dht.OK then
+    return(string.format("Temp: %d C, Hum: %d %%",temp,humi))
+  elseif status == dht.ERROR_CHECKSUM then
+    return( "DHT Checksum error." )
+  elseif status == dht.ERROR_TIMEOUT then
+    return( "DHT timed out." )
+  end
 end
 
 -- init
@@ -180,6 +198,7 @@ tmr.alarm(1, 1000, tmr.ALARM_AUTO, function()
     draw_logo()
   else
     rssi = wifi.sta.getrssi()
+    envstr=get_env()
     draw_time()
   end
 end)
