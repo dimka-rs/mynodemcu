@@ -3,7 +3,7 @@ dofile('regs.lua') -- regs numbers
 
 -- HW pins
 csn=0 -- SPI Chip Select
-ce=2  -- NFR Chip Enable
+ce=1  -- NFR Chip Enable
 
 -- HW init
 gpio.mode(csn, gpio.OUTPUT)
@@ -117,6 +117,23 @@ function recv_data()
   tmr.delay(150)
 end
 
+function init_recv()
+-- page 75
+-- flush rx buffer
+-- data rate
+-- rf channel
+-- src addr
+
+end
+
+function init_send()
+-- page 76
+-- data rate
+-- rf channel
+-- power amp
+-- dst addr
+
+end
 
 ------------------
 -- Debug functions
