@@ -8,11 +8,13 @@ SSID="WIFI SSID"
 KEY="WIFI KEY"
 
 -- Sensor Power Supply pin
-PWRPIN=4
+PWRPIN=1
 
 function getData()
     a=adc.read(0)
-    p=a-150
+    --shift: +0.5V, divider: 1/5, shift: 100 adc cnts
+    -- each 100 cnts = 0.15 MPa 
+    p=(a-100)*3/2
     if p < 0 then
 		p=0
 		print 'Probably, there is no sensor connected\n'
@@ -22,8 +24,6 @@ end
 
 -- MAIN --
 function main()
-gpio.mode(PWRPIN, gpio.OUTPUT)
-gpio.write(PWRPIN, gpio.HIGH)
 -- get data
 a, p=getData()
 print("ADC:      "..a.."\nPressure :"..p.." kPa\n")
@@ -66,8 +66,13 @@ print("End of script")
 end
 
 -- START --
+print('Sensor power ON')
+gpio.mode(PWRPIN, gpio.OUTPUT)
+gpio.write(PWRPIN, gpio.HIGH)
 print("Going to deep sleep in 10 sec, stop timer 0 to prevent")
 tmr.alarm(0, 10000, tmr.ALARM_SINGLE, function()    
+  print('Sensor power OFF')
+  gpio.write(PWRPIN, gpio.LOW)
   print("Deep sleep 5 min")
   node.dsleep(300000000)
   end)
