@@ -1,5 +1,5 @@
 -- some constants --
-MQTTIP='192.168.31.4'
+MQTTIP='mqtt'
 MQTTTOPIC='/sensors/hwat-t'
 MQTTID='hwat'
 TSIP='184.106.153.149' -- api.thingspeak.com
