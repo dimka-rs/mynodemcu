@@ -9,7 +9,7 @@ bmp180.init(SDA_PIN, SCL_PIN)
 DAT = 2
 -- MQTT
 MQTTID='env'
-MQTTIP='192.168.31.4'
+MQTTIP='mqtt'
 -- ThingSpeak
 TSKEY='RGTJA4C0PMEYVFAE'
 TSIP='184.106.153.149' -- api.thingspeak.com
