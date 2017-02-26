@@ -11,11 +11,11 @@ DAT = 2
 MQTTID='env'
 MQTTIP='mqtt'
 -- ThingSpeak
-TSKEY='RGTJA4C0PMEYVFAE'
+TSKEY=''
 TSIP='184.106.153.149' -- api.thingspeak.com
 -- WiFi
-WFSSID="Slow"
-WFKEY="Ao3deiwah7"
+WFSSID=""
+WFKEY=""
 
 
 function readDHT11()
