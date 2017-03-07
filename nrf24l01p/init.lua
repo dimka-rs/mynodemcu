@@ -2,32 +2,52 @@
 dofile('regs.lua') -- regs numbers
 
 -- HW pins
-csn=0 -- SPI Chip Select
-ce=1  -- NFR Chip Enable
+cs1=0 -- 1st NRF Chip Select
+cs2=1 -- 2nd NFR Chip Select
+ce1=2 -- 1st NRF Chip Enable
+ce2=3 -- 2nd NRF Chip Enable
+
+cs=cs1
+ce=ce1
 
 -- HW init
-gpio.mode(csn, gpio.OUTPUT)
-gpio.mode(ce, gpio.OUTPUT)
-gpio.write(csn, gpio.HIGH)
-gpio.write(ce, gpio.LOW)
 spi.setup(1, spi.MASTER, spi.CPOL_LOW, spi.CPHA_LOW, spi.DATABITS_8, 8);
+gpio.mode(cs1, gpio.OUTPUT)
+gpio.mode(ce1, gpio.OUTPUT)
+gpio.write(cs1, gpio.HIGH)
+gpio.write(ce1, gpio.LOW)
+
+gpio.mode(cs2, gpio.OUTPUT)
+gpio.mode(ce2, gpio.OUTPUT)
+gpio.write(cs2, gpio.HIGH)
+gpio.write(ce2, gpio.LOW)
 
 ---------------
 -- SPI Commands
 ---------------
 
+function setmodule(modulenum)
+  if modulenum == 2 then
+    cs=cs2
+    ce=ce2
+  else
+    cs=cs1
+    ce=ce1
+  end
+end
+
 function readreg(reg)
-  gpio.write(csn, gpio.LOW)
+  gpio.write(cs, gpio.LOW)
   spi.send(1, reg)
   val = spi.recv(1, 1)
-  gpio.write(csn, gpio.HIGH)
+  gpio.write(cs, gpio.HIGH)
   return val
 end
 
 function writereg(reg, data)
-  gpio.write(csn, gpio.LOW)
+  gpio.write(cs, gpio.LOW)
   spi.send(1, reg+0x20, data)
-  gpio.write(csn, gpio.HIGH)
+  gpio.write(cs, gpio.HIGH)
 end
 
 function readpld() -- not impl
@@ -36,38 +56,38 @@ end
 
 function writepld(pld) -- not impl
   -- 1010 0000, 1 to 32 LSByte first
-  gpio.write(csn, gpio.LOW)
+  gpio.write(cs, gpio.LOW)
   wrote=spi.send(1, 0xA0, pld)
-  gpio.write(csn, gpio.HIGH)
+  gpio.write(cs, gpio.HIGH)
   return wrote
 end
 
 function flushtx()
   --1110 0001
-  gpio.write(csn, gpio.LOW)
+  gpio.write(cs, gpio.LOW)
   spi.send(1, 0xE1)
-  gpio.write(csn, gpio.HIGH)
+  gpio.write(cs, gpio.HIGH)
 end
 
 function flushrx()
   --1110 0010
-  gpio.write(csn, gpio.LOW)
+  gpio.write(cs, gpio.LOW)
   spi.send(1, 0xE2)
-  gpio.write(csn, gpio.HIGH)
+  gpio.write(cs, gpio.HIGH)
 end
 
 function reusetxpl()
   --1110 0011
-  gpio.write(csn, gpio.LOW)
+  gpio.write(cs, gpio.LOW)
   spi.send(1, 0xE3)
-  gpio.write(csn, gpio.HIGH)
+  gpio.write(cs, gpio.HIGH)
 end
 
 function rrxplwid()
-  gpio.write(csn, gpio.LOW)
+  gpio.write(cs, gpio.LOW)
   spi.send(1, 0x60)
   val = spi.recv(1, 1)
-  gpio.write(csn, gpio.HIGH)
+  gpio.write(cs, gpio.HIGH)
   return val
   -- TODO: flush rx if val > 32
 end
@@ -165,7 +185,7 @@ function print_status()
   print('TX_FULL:\t'..get_bit(st,0))
 end
 
-function test_regs()
+function test_regs(modnum)
 -- reg #   0     1     2     3     4     5     6     7
   defs={0x08, 0x3F, 0x03, 0x03, 0x03, 0x02, 0x0E, 0x0E}
   defs_len=8
