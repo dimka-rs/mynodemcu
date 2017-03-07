@@ -1,0 +1,29 @@
+1276 - 137-1020
+1277 - 137-1020 SF6-9
+1278 - 137-525
+1279 - 137-960
+
+BW < 62.5 kHz requires TCXO, otherwise XTAL is ok
+wider BW - shorter/faster transmittion
+SF7 - fastest, SF12 - most sensitive
+SF6 is special
+CR4/5 - fastest, CR4/8 - reliable. Header is always 4/8
+Symbol rate Rs=BW/2^S. one chip is sent per second per Hz of bandwidth
+
+RSSI (dBm) = -157 + Rssi, (when using the High Frequency (HF) port) 862-1020
+RSSI (dBm) = -164 + Rssi, (when using the Low Frequency (LF) port) 410-525, 137-175
+
+Packet Strength (dBm) = -157 + Rssi, (when using the High Frequency (HF) port)
+Packet Strength (dBm) = -164 + Rssi, (when using the Low Frequency (LF) port)
+
+Packet Strength (dBm) = -157 + PacketRssi + PacketSnr * 0.25 (when using the HF port and SNR < 0)
+Packet Strength (dBm) = -164 + PacketRssi + PacketSnr * 0.25 (when using the LF port and SNR < 0)
+
+PacketRssi (in RegPktRssiValue), is an averaged version of Rssi (in RegRssiValue). Rssi can be read at any time
+(during packet reception or not), and should be averaged to give more precise results.
+
+The registers in the address space from 0x61 to 0x73 are specific for operation in the lower frequency bands (below 525
+MHz), or in the upper frequency bands (above 779 MHz).
+
+434 MHz - 0x6c8000
+868 MHz - 0xd90024

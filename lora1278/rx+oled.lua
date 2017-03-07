@@ -68,7 +68,7 @@ end
 
 function prepare_display()
     disp:firstPage()
-    disp:setFont(u8g.font_6x10r)
+    disp:setFont(u8g.font_6x10)
     disp:setFontRefHeightExtendedText()
     disp:setDefaultForegroundColor()
     disp:setFontPosTop()
@@ -121,12 +121,12 @@ end
 
 function lora_get_rssi()
   v = readreg(RegRssiValue)
-  return string.byte(v) - 164 -- LF:-164, HF:-157
+  return string.byte(v) - 157 -- LF:-164, HF:-157
 end
 
 function lora_get_pkt_rssi()
   v = readreg(RegPktRssiValue)
-  return string.byte(v) - 164 -- LF:-164, HF:-157
+  return string.byte(v) - 157 -- LF:-164, HF:-157
 end
 
 function lora_get_pkt_snr()
@@ -162,6 +162,12 @@ init_spi()
 lora_set_mode('SLEEP')
 lora_set_mode('STDBY')
 lora_reset_ptr_rx()
+-- 868 MHz - 0xd90024
+writereg(0x06, 0xd9)
+writereg(0x07, 0x00)
+writereg(0x08, 0x24)
+writereg(0x1D, 0x72) -- BW,CR,ImplHdr. Def: 0x72
+writereg(0x1E, 0x74) -- dis crc, SF7. Def: 0x70
 lora_set_mode('RXC')
 
 pktnum=0
