@@ -39,16 +39,15 @@ function lora_init()
   writereg(0x01, 0x08) -- fsk modem, sleep mode
   writereg(0x01, 0x88) -- lora modem, sleep mode
   writereg(0x01, 0x89) -- lora modem, stdby mode
-  -- 433 MHz - 6c....
-  -- 868 MHz - D90024
-  writereg(0x06, 0xd9)
-  writereg(0x07, 0x00)
-  writereg(0x08, 0x24)
-  writereg(0x09, 0x4f) -- 0xff - max power, def: 0x4f
+  -- 6c8000 - 434 MHz, D90024 - 868 MHz
+  writereg(0x06, 0xd9) -- lora modem, stdby mode
+  writereg(0x07, 0x00) -- lora modem, stdby mode
+  writereg(0x08, 0x24) -- lora modem, stdby mode
+  writereg(0x09, 0xff) -- MAX POWER!!!
   writereg(0x0E, 0x80) -- tx base address
   writereg(0x0F, 0x00) -- rx base address
-  writereg(0x1D, 0x72) -- BW,CR,ImplHdr. Def: 0x72
-  writereg(0x1E, 0x74) -- dis crc, SF7. Def: 0x70
+  writereg(0x1D, 0x72) -- BW125kHz,CR4/5,ExplHdr (Def: 0x72)
+  writereg(0x1E, 0x74) -- SF7,CRCon (Def: 0x70)
   writereg(0x22, payload_len) -- RegPayloadLength  
 end
 
