@@ -12,12 +12,20 @@ eeprom = 0x53 -- or 0x57 if B0 is high
 tzoffsethrs = 3
 tzoffsetmin = 0
 ntpserv = 'pool.ntp.org'
-wifi_ssid = "RL01w-TEST"
-wifi_key = "1234567890"
+wifi_ssid = "*"
+wifi_key = "*"
+issynced = 0
 insync = 0
 ip = nil
 rssi = ''
 envstr=''
+TSKEY='*'
+TSIP='api.thingspeak.com'
+MQTTIP='*'
+MQTTPORT='*'
+MQTTID='*'
+MQTTUSER='*'
+MQTTPASS='*'
 
 function i2c_print_slaves()
   for i=0x00,0x7F do
@@ -94,18 +102,23 @@ function draw_time()
     --font_6x10,font_chikita,font_freedoomr25n
     disp:setFont(u8g.font_freedoomr25n)
     disp:drawStr(15,  30, t)
+    disp:setFont(u8g.font_6x10)
+    disp:drawStr(0,  40, envstr)
     if ip ~= nil then
-      disp:setFont(u8g.font_6x10)
-      disp:drawStr(0,  40, envstr)
-      disp:drawStr(0,  50, ip)
-      disp:drawStr(0,  60, wifi_ssid..' '..rssi..'dBm')
+      disp:drawStr(0,  50, "IP "..ip)
+    else
+      disp:drawStr(0,  50, "MAC "..wifi.sta.getmac())
     end
+    disp:drawStr(0,  60, wifi_ssid..' '..rssi..'dBm')
   until disp:nextPage() == false
 end
 
 function get_env()
   status, temp, humi, temp_dec, humi_dec = dht.read(env)
   if status == dht.OK then
+    if ip ~= nil then
+      senddata(temp.."."..temp_dec, humi.."."..humi_dec)
+      end
     return(string.format("Temp: %d C, Hum: %d %%",temp,humi))
   elseif status == dht.ERROR_CHECKSUM then
     return( "DHT Checksum error." )
@@ -144,6 +157,7 @@ function sync_ok(offsec, offusec,serv)
   s=sec
   print('Time set to: '..tostring(hrs)..':'..tostring(min)..':'..tostring(sec))
   insync=0
+  issynced=1
   tmr.stop(0)
 end
 
@@ -170,13 +184,54 @@ tmr.alarm(0, 1000, tmr.ALARM_AUTO, function()
   end
 end)
 
+function senddata(temp, humi)
+print("TS createConnection")
+conn=net.createConnection(net.TCP, 0)
+conn:on("receive", function(conn, payload)
+  --print("TS receive start")
+  print(payload)
+  --print("TS receive end")
+  end)
+conn:on("connection", function(conn)
+  --print("TS connection start")
+  conn:send("GET /update?key="..TSKEY.."&field1="..temp.."&field2="..humi.."\r\n")
+  --print("TS connection end")
+  end)
+conn:on("sent",function(conn)
+  --print("TS sent start")
+  conn:close()
+  --print("TS sent end")
+  end)
+conn:on("disconnection", function(conn)
+  --print("TS disconnection start")
+  print("TS disconnection end")
+  end)
+--print("TS connecting...")
+conn:connect(80,TSIP)
+
+mq = mqtt.Client(MQTTID, 10, MQTTUSER, MQTTPASS)
+print("MQTT connect")
+mq:connect(MQTTIP, MQTTPORT, 0, function(client)
+  print ("MQTT on connect")
+  mq:publish('/sensors/office/t',temp,0,0, function(client)
+    print("MQTT:t sent")
+    mq:publish('/sensors/office/h',humi,0,0, function(client)
+        print("MQTT:b sent")
+        mq:close()
+        print("MQTT: closed")
+        end)
+    end)
+  end)
+end
 
 -- MAIN LOOP
+envstr=get_env()
 tmr.alarm(1, 1000, tmr.ALARM_AUTO, function()
   c=c+1
   if c > 59 then
     c=0
     m=m+1
+    if m%5 == 0 then envstr=get_env() end
     if m > 59 then
       m=0
       h=h+1
@@ -191,15 +246,21 @@ tmr.alarm(1, 1000, tmr.ALARM_AUTO, function()
     d=' '
   end
   t=string.format('%02d',h)..d..string.format('%02d',m)
+  if issynced == 0 then
+    t=t..' -'
+  end
 --  print('Time: '..t)
   s=s+1
-  if s > 15 then s=0 end
+  if s > 15 then
+    s=0
+  end
   if s > 10 then
     draw_logo()
   else
     rssi = wifi.sta.getrssi()
-    envstr=get_env()
+    if rssi == nil then
+      rssi = ''
+    end
     draw_time()
   end
 end)
-
