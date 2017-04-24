@@ -16,7 +16,7 @@ gpio.write(ce, gpio.LOW)
 -- SPI Commands
 ---------------
 
-function readreg(reg)
+function readreg(reg) -- R_REGISTER: 000A AAAA, 1-5 LSByte first
   gpio.write(cs, gpio.LOW)
   spi.send(1, reg)
   val = spi.recv(1, 1)
@@ -24,14 +24,13 @@ function readreg(reg)
   return val
 end
 
-function writereg(reg, data)
+function writereg(reg, data) -- W_REGISTER: 001A AAAA, 1-5 LSByte first
   gpio.write(cs, gpio.LOW)
   spi.send(1, reg+0x20, data)
   gpio.write(cs, gpio.HIGH)
 end
 
-function readpld(length)
-  -- 0110 0001, 1-32 bytes, LSByte first
+function readpld(length) -- R_RX_PAYLOAD: 0110 0001, 1-32 LSByte first
   gpio.write(cs, gpio.LOW)
   spi.send(1, 0x61)
   pld = spi.recv(1, length)
@@ -39,36 +38,32 @@ function readpld(length)
   return pld
 end
 
-function writepld(pld)
-  -- 1010 0000, 1 to 32 LSByte first
+function writepld(pld) -- W_TX_PAYLOAD: 1010 0000, 1 to 32 LSByte first
   gpio.write(cs, gpio.LOW)
   wrote=spi.send(1, 0xA0, pld)
   gpio.write(cs, gpio.HIGH)
   return wrote
 end
 
-function flushtx()
-  --1110 0001
+function flushtx() -- FLUSH_TX: 1110 0001
   gpio.write(cs, gpio.LOW)
   spi.send(1, 0xE1)
   gpio.write(cs, gpio.HIGH)
 end
 
-function flushrx()
-  --1110 0010
+function flushrx() -- FLUSH_RX: 1110 0010
   gpio.write(cs, gpio.LOW)
   spi.send(1, 0xE2)
   gpio.write(cs, gpio.HIGH)
 end
 
-function reusetxpl()
-  --1110 0011
+function reusetxpl() -- REUSE_TX_PL: 1110 0011
   gpio.write(cs, gpio.LOW)
   spi.send(1, 0xE3)
   gpio.write(cs, gpio.HIGH)
 end
 
-function rrxplwid()
+function rrxplwid() -- R_RX_PL_WID: 0110 0000
   gpio.write(cs, gpio.LOW)
   spi.send(1, 0x60)
   val = spi.recv(1, 1)
@@ -77,16 +72,17 @@ function rrxplwid()
   -- TODO: flush rx if val > 32
 end
 
-function wackpld() -- not impl
-  -- 1010 1PPP
+function wackpld(pipe) -- W_ACK_PAYLOAD: 1010 1PPP, 1 to 32 LSByte first
+  -- pipe 000 to 101
+  -- not impl
 end
 
-function wtxpldnoack() -- not impl
-  -- 1011 0000
+function wtxpldnoack() -- W_TX_PAYLOAD_NOACK: 1011 0000, 1 to 32 LSByte first
+  -- not impl
 end
 
-function nop() -- not imp
- -- 1111 1111
+function nop() -- NOP: 1111 1111, shifts out STATUS
+  -- not imp
 end
 
 ------------------
