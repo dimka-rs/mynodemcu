@@ -24,6 +24,14 @@ function readreg(reg) -- R_REGISTER: 000A AAAA, 1-5 LSByte first
   return val
 end
 
+function read5reg(reg) -- R_REGISTER: 000A AAAA, 1-5 LSByte first
+  gpio.write(cs, gpio.LOW)
+  spi.send(1, reg)
+  val = spi.recv(1, 5)
+  gpio.write(cs, gpio.HIGH)
+  return val
+end
+
 function writereg(reg, data) -- W_REGISTER: 001A AAAA, 1-5 LSByte first
   gpio.write(cs, gpio.LOW)
   spi.send(1, reg+0x20, data)
@@ -111,6 +119,7 @@ function init_send()
   writereg(RX_ADDR_P0, 0xB1B2B3B4B5) -- pipe 0 rx addr
   writereg(RX_PW_P0, 8) -- payload len for pipe 0, actually prx only
   writereg(TX_ADDR, 0xB1B2B3B4B5) -- tx addr
+  flushrx()
 end
 
 function send_data(data)
@@ -119,24 +128,32 @@ function send_data(data)
   gpio.write(ce, gpio.HIGH)
   tmr.delay(100) -- more than 10 us
   gpio.write(ce, gpio.LOW)
+  print_status()
+end
+
+function init_recv()
+  -- page 76
+  writereg(CONFIG, 0x0F) -- EN_CRC 2 Bytes, PWRUP, PRX
+  writereg(EN_AA, 0x01) -- enable autoack on pipe 0
+  writereg(EN_RXADDR, 0x01) -- enable pipe 0
+  writereg(SETUP_AW, 0x03) -- address width is 5 bytes
+  writereg(SETUP_RETR, 0x13) -- retr in 500 us, up to 3 attempts
+  writereg(RF_CH, 0x02) -- channel 2400 + 2 MHz
+  writereg(RF_SETUP, 0x00) -- 1 Mbit, min power
+  writereg(RX_ADDR_P0, 0xB1B2B3B4B5) -- pipe 0 rx addr
+  writereg(RX_PW_P0, 8) -- payload len for pipe 0, actually prx only
+  writereg(TX_ADDR, 0xB1B2B3B4B5) -- tx addr
+  flushtx()
 end
 
 function recv_data(timeout_us)
-  writereg(CONFIG,0x0B) -- PWR_UP=1, PRIM_RX=1
   gpio.write(ce, gpio.HIGH)
   tmr.delay(timeout_us)
   gpio.write(ce, gpio.LOW)
   print_status()
 end
 
-function init_recv()
--- page 76
--- flush rx buffer
--- data rate
--- rf channel
--- src addr
 
-end
 
 ------------------
 -- Debug functions
@@ -145,6 +162,11 @@ end
 function printreg(reg)
   rreg=readreg(reg)
   print('\nReg:'..string.format("0x%02X", reg)..'='..string.format("0x%02X", string.byte(rreg)))
+end
+
+function print5reg(reg)
+  rreg=read5reg(reg)
+  print('\nReg:'..string.format("0x%02X", reg)..'='..string.format("0x%10X", string.byte(rreg)))
 end
 
 
