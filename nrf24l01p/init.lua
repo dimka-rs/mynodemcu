@@ -1,5 +1,6 @@
 -- NRF24L01 test 
 dofile('regs.lua') -- regs numbers
+dofile('debug.lua') -- debug functions
 
 -- HW pins
 cs=1 -- NRF Chip Select
@@ -49,17 +50,22 @@ end
 
 function readpld(length) -- R_RX_PAYLOAD: 0110 0001, 1-32 LSByte first
   gpio.write(cs, gpio.LOW)
+  pld = {}
   spi.send(1, 0x61)
-  pld = spi.recv(1, length)
+  for i=1,length do
+    table.insert(pld, spi.recv(1, 1))
+  end
   gpio.write(cs, gpio.HIGH)
+  flushrx()
+  clear_flags()
   return pld
 end
 
-function writepld(p1) -- W_TX_PAYLOAD: 1010 0000, 1 to 32 LSByte first
+function writepld(pld) -- W_TX_PAYLOAD: 1010 0000, 1 to 32 LSByte first
   gpio.write(cs, gpio.LOW)
-  wrote=spi.send(1, 0xA0, 0x31, 0x32, 0x33, 0x34, 0x41, 0x42, 0x63, 0x64)
+  spi.send(1, 0xA0)
+  for k,v in pairs(pld) do spi.send(1, v) end
   gpio.write(cs, gpio.HIGH)
-  return wrote
 end
 
 function flushtx() -- FLUSH_TX: 1110 0001
@@ -151,11 +157,11 @@ function init_send()
   flushtx()
 end
 
-function send_data()
-  writepld(1)
+function send_data(pld)
+  writepld(pld)
   clear_flags()
   gpio.write(ce, gpio.HIGH)
-  tmr.delay(1000000) -- more than 10 us
+  tmr.delay(100000) -- more than 10 us
   gpio.write(ce, gpio.LOW)
   print_status()
   print_observe()
@@ -181,71 +187,23 @@ function recv_data(timeout_us)
   print_fifo()
 end
 
-------------------
--- Debug functions
-------------------
-
-function printreg(reg)
-  rreg=readreg(reg)
-  print('\nReg:'..string.format("0x%02X", reg)..'='..string.format("0x%02X", string.byte(rreg)))
+function starttx()
+  init_send()
+  tmr.alarm(0, 5000, tmr.ALARM_AUTO, function()
+  uptime=string.format("%08d", tmr.time())
+  pld={}
+  uptime:gsub(".",function(c) table.insert(pld, c) end)
+  for k,v in pairs(pld) do print(k, v) end
+  send_data(pld)
+  end)
 end
 
-function print5reg(reg)
-  rreg=read5reg(reg)
-  rr='0x'
-  for i=1,5 do
-    rr=rr..string.format("%02X", string.byte(rreg,i))
-  end
-  print('\nReg:'..string.format("0x%02X", reg)..'='..rr)
-end
-
-
-function print_config()
- cnf=string.byte(readreg(CONFIG))
- print('MASK_RX_DR:  '..get_bit(cnf,6))
- print('MASK_TX_DS:  '..get_bit(cnf,5))
- print('MASK_MAX_RT: '..get_bit(cnf,4))
- print('EN_CRC:      '..get_bit(cnf,3))
- print('CRCO:        '..get_bit(cnf,2))
- print('PWR_UP:      '..get_bit(cnf,1))
- print('PRIM_RX:     '..get_bit(cnf,0))
-end
-
-function print_status()
-  st=string.byte(readreg(STATUS))
-  print('RX_DR:   '..get_bit(st,6))
-  print('TX_DS:   '..get_bit(st,5))
-  print('MAX_RT:  '..get_bit(st,4))
-  print('RX_P_NO: '..get_bit(st,3)..get_bit(st,2)..get_bit(st,1))
-  print('TX_FULL: '..get_bit(st,0))
-end
-
-function print_fifo()
-  st=string.byte(readreg(FIFO_STATUS))
-  print('TX_REUSE: '..get_bit(st,6))
-  print('TX_FULL:  '..get_bit(st,5))
-  print('TX_EMPTY: '..get_bit(st,4))
-  print('RX_FULL:  '..get_bit(st,1))
-  print('RX_EMPTY: '..get_bit(st,0))
-end
-
-function print_observe()
-  st=string.byte(readreg(OBSERVE_TX))
-  print('PLOS_CNT: '..get_bit(st,7)..get_bit(st,6)..get_bit(st,5)..get_bit(st,4))
-  print('ARC_CNT:  '..get_bit(st,3)..get_bit(st,2)..get_bit(st,1)..get_bit(st,0))
-end
-
-function test_regs()
--- reg #   0     1     2     3     4     5     6     7     8     9
-  defs={0x08, 0x3F, 0x03, 0x03, 0x03, 0x02, 0x0F, 0x0E, 0x00, 0x00}
-  defs_len=10
-  for i=1, defs_len do
-    val=string.byte(readreg(i-1))
-    if val == defs[i] then
-      res="OK  "
-    else
-      res="Fail"
-    end
-    print("Reg "..tostring(i-1).." - ".. res.." reads "..val.."\tmust be "..defs[i])
-  end
+function startrx()
+  init_recv()
+  gpio.write(ce, gpio.HIGH)
+  tmr.alarm(0, 1000, tmr.ALARM_AUTO, function()
+  print('.')
+  r=bit.band(string.byte(readreg(STATUS)), 0x70)
+  if r > 0 then print_payload(PAYLOAD_LEN) end
+  end)
 end
