@@ -14,7 +14,7 @@ gpio.mode(ce, gpio.OUTPUT)
 gpio.write(ce, gpio.LOW)
 
 -- constants
-PAYLOAD_LEN=8
+PAYLOAD_LEN=32
 
 ---------------
 -- SPI Commands
